@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+//nombres de las entidades en ingles para evitar unos problemas 
+
+model User {
+  id               Int           @id @default(autoincrement())
+  name             String
+  email            String        @unique
+  password         String
+  createdAt        DateTime      @default(now())
+
+  notes            Note[]
+  purchases        Purchase[]
+  sharedFrom       Share[]       @relation("ShareFrom")
+  sharedTo         Share[]       @relation("ShareTo")
+}
+
+model PurchaseType {
+  id               Int           @id @default(autoincrement())
+  type             String        @unique
+
+  purchases        Purchase[]
+}
+
+model Note {
+  id               Int           @id @default(autoincrement())
+  userId           Int
+  title            String?
+  content          String
+  createdAt        DateTime      @default(now())
+
+  user             User          @relation(fields: [userId], references: [id])
+  reminder         Reminder?
+  histories        NoteHistory[]
+  shares           Share[]
+}
+
+model Reminder {
+  id               Int           @id @default(autoincrement())
+  noteId           Int           @unique
+  reminderDate     DateTime
+
+  note             Note          @relation(fields: [noteId], references: [id])
+}
+
+model NoteHistory {
+  id               Int           @id @default(autoincrement())
+  noteId           Int
+  oldContent       String?
+  modifiedAt       DateTime      @default(now())
+
+  note             Note          @relation(fields: [noteId], references: [id])
+}
+
+model Purchase {
+  id               Int           @id @default(autoincrement())
+  userId           Int
+  purchaseTypeId   Int
+  description      String
+  price            Float?
+  purchaseDate     DateTime?
+
+  user             User          @relation(fields: [userId], references: [id])
+  purchaseType     PurchaseType  @relation(fields: [purchaseTypeId], references: [id])
+  histories        PurchaseHistory[]
+  shares           Share[]
+}
+
+model PurchaseHistory {
+  id               Int           @id @default(autoincrement())
+  purchaseId       Int
+  oldDescription   String?
+  oldPrice         Float?
+  modifiedAt       DateTime      @default(now())
+
+  purchase         Purchase      @relation(fields: [purchaseId], references: [id])
+}
+
+model Share {
+  id               Int           @id @default(autoincrement())
+  fromUserId       Int
+  toUserId         Int
+  noteId           Int?
+  purchaseId       Int?
+  sharedAt         DateTime      @default(now())
+
+  fromUser         User          @relation("ShareFrom", fields: [fromUserId], references: [id])
+  toUser           User          @relation("ShareTo", fields: [toUserId], references: [id])
+  note             Note?         @relation(fields: [noteId], references: [id])
+  purchase         Purchase?     @relation(fields: [purchaseId], references: [id])
+}
